@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smoothest JavaScript Game - Super Dupe Fast Enemies</title>
+<style>
+    body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+        background-color: #f0f0f0;
+    }
+    canvas {
+        background-color: #fff;
+        border: 2px solid #333;
+    }
+</style>
+</head>
+<body>
+<canvas id="gameCanvas" width="400" height="400"></canvas>
+<script>
+    // --- Game Setup ---
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const CANVAS_WIDTH = canvas.width;
+    const CANVAS_HEIGHT = canvas.height;
+    let score = 0;
+    let gameOver = false;
+    let keys = {};
+
+    // --- Player Object ---
+    const player = {
+        x: CANVAS_WIDTH / 2 - 15,
+        y: CANVAS_HEIGHT - 40,
+        width: 30,
+        height: 30,
+        speed: 7, // Slightly faster player speed for better control
+        draw() {
+            ctx.fillStyle = 'blue';
+            ctx.fillRect(this.x, this.y, this.width, this.height);
+        },
+        update() {
+            if (keys['ArrowLeft'] && this.x > 0) {
+                this.x -= this.speed;
+            }
+            if (keys['ArrowRight'] && this.x + this.width < CANVAS_WIDTH) {
+                this.x += this.speed;
+            }
+        }
+    };
+
+    // --- Enemies Array and Logic ---
+    let enemies = [];
+    const ENEMY_WIDTH = 20;
+    const ENEMY_HEIGHT = 20;
+    const BASE_ENEMY_SPEED = 5; // Start speed much faster than the original 2
+    const SPAWN_RATE = 15; // Spawn an enemy every 15 frames on average (was 100)
+
+    function spawnEnemy() {
+        const x = Math.random() * (CANVAS_WIDTH - ENEMY_WIDTH);
+        enemies.push({
+            x: x,
+            y: -ENEMY_HEIGHT,
+            width: ENEMY_WIDTH,
+            height: ENEMY_HEIGHT,
+            // Speed scales much faster with score
+            speed: BASE_ENEMY_SPEED + score * 0.1 
+        });
+    }
+
+    function updateEnemies() {
+        for (let i = enemies.length - 1; i >= 0; i--) {
+            const enemy = enemies[i];
+            enemy.y += enemy.speed;
+
+            // Check for collision with player
+            if (
+                player.x < enemy.x + enemy.width &&
+                player.x + player.width > enemy.x &&
+                player.y < enemy.y + enemy.height &&
+                player.y + player.height > enemy.y
+            ) {
+                gameOver = true;
+                break; // Stop updating enemies if game over
+            }
+
+            // Remove enemy if it goes off screen
+            if (enemy.y > CANVAS_HEIGHT) {
+                enemies.splice(i, 1);
+                score++;
+            }
+        }
+    }
+
+    function drawEnemies() {
+        ctx.fillStyle = 'red';
+        enemies.forEach(enemy => {
+            ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+        });
+    }
+
+    // --- Input Handling ---
+    document.addEventListener('keydown', (e) => {
+        keys[e.key] = true;
+    });
+    document.addEventListener('keyup', (e) => {
+        keys[e.key] = false;
+    });
+
+    // --- Game Loop ---
+    function gameLoop() {
+        if (gameOver) {
+            ctx.fillStyle = 'black';
+            ctx.font = '30px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Game Over!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+            ctx.font = '20px Arial';
+            ctx.fillText(`Score: ${score}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 35);
+            return; // Stop the loop
+        }
+
+        // Update game state
+        player.update();
+        updateEnemies();
+        
+        // Super dupe fast spawning logic
+        if (Math.random() < 1 / SPAWN_RATE) {
+            spawnEnemy();
+        }
+
+        // Clear canvas for next frame
+        ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+        // Draw everything
+        player.draw();
+        drawEnemies();
+        ctx.fillStyle = 'black';
+        ctx.font = '16px Arial';
+        ctx.textAlign = 'left'; // Reset text alignment for score
+        ctx.fillText(`Score: ${score}`, 10, 20);
+
+        // Request next frame for smooth animation
+        requestAnimationFrame(gameLoop);
+    }
+
+    // Start the game
+    gameLoop();
+</script>
+</body>
+</html>

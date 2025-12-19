@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hardcore Laser & Boss Game</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        canvas {
+            background-color: #000; /* Dark background for laser aesthetic */
+            border: 2px solid #333;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="400" height="600"></canvas>
+    <script>
+        // --- Game Setup ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const CANVAS_WIDTH = canvas.width;
+        const CANVAS_HEIGHT = canvas.height;
+        let score = 0;
+        let gameOver = false;
+        let keys = {};
+        const BOSS_SCORE_THRESHOLD = 50; // Boss appears after this score
+
+        // --- Player Object ---
+        const player = {
+            x: CANVAS_WIDTH / 2 - 15,
+            y: CANVAS_HEIGHT - 40,
+            width: 30,
+            height: 30,
+            speed: 10, // Fast player speed
+            canShoot: true,
+            cooldown: 300, // milliseconds
+            draw() {
+                ctx.fillStyle = 'blue';
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+            },
+            update() {
+                if (keys['ArrowLeft'] && this.x > 0) {
+                    this.x -= this.speed;
+                }
+                if (keys['ArrowRight'] && this.x + this.width < CANVAS_WIDTH) {
+                    this.x += this.speed;
+                }
+            }
+        };
+
+        // --- Lasers Array and Logic ---
+        let lasers = [];
+        const LASER_SPEED = 15;
+        function shootLaser() {
+            if (player.canShoot) {
+                lasers.push({
+                    x: player.x + player.width / 2 - 2, // Center the laser
+                    y: player.y,
+                    width: 4,
+                    height: 10,
+                    speed: LASER_SPEED
+                });
+                player.canShoot = false;
+                setTimeout(() => {
+                    player.canShoot = true;
+                }, player.cooldown);
+            }
+        }
+
+        function updateLasers() {
+            for (let i = lasers.length - 1; i >= 0; i--) {
+                const laser = lasers[i];
+                laser.y -= laser.speed;
+                // Check for collision with boss
+                if (boss.active && checkCollision(laser, boss)) {
+                    boss.health -= 10;
+                    lasers.splice(i, 1); // Remove laser
+                    if (boss.health <= 0) {
+                        endBossFight();
+                    }
+                    continue; // Skip the rest of the loop for this laser
+                }
+                // Remove laser if off screen
+                if (laser.y < 0) {
+                    lasers.splice(i, 1);
+                }
+            }
+        }
+
+        function drawLasers() {
+            ctx.fillStyle = 'lime'; // Bright green laser
+            lasers.forEach(laser => {
+                ctx.fillRect(laser.x, laser.y, laser.width, laser.height);
+            });
+        }
+
+        // --- Enemies (Falling Blocks) Array and Logic ---
+        let enemies = [];
+        const ENEMY_WIDTH = 20;
+        const ENEMY_HEIGHT = 20;
+        const BASE_ENEMY_SPEED = 8; // Really fast start speed
+        let spawnRate = 20; // Lower number means more frequent spawns (frames)
+
+        function spawnEnemy() {
+            const x = Math.random() * (CANVAS_WIDTH - ENEMY_WIDTH);
+            // Speed scales heavily with score
+            const speed = BASE_ENEMY_SPEED + Math.floor(score / 10) * 1.5;
+            enemies.push({
+                x: x,
+                y: -ENEMY_HEIGHT,
+                width: ENEMY_WIDTH,
+                height: ENEMY_HEIGHT,
+                speed: speed
+            });
+            // Increase spawn rate over time (lower spawnRate value)
+            if (score % 20 === 0 && spawnRate > 5) {
+                spawnRate--;
+            }
+        }
+
+        function updateEnemies() {
+            if (boss.active) return; // Stop falling blocks during boss fight
+
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                const enemy = enemies[i];
+                enemy.y += enemy.speed;
+
+                // Check for collision with player
+                if (checkCollision(player, enemy)) {
+                    gameOver = true;
+                    return; // Stop updating enemies if game over
+                }
+                // Remove enemy if it goes off screen
+                if (enemy.y > CANVAS_HEIGHT) {
+                    enemies.splice(i, 1);
+                    score++;
+                    if (score === BOSS_SCORE_THRESHOLD) {
+                        startBossFight();
+                    }
+                }
+            }
+        }
+
+        function drawEnemies() {
+            ctx.fillStyle = 'red';
+            enemies.forEach(enemy => {
+                ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+            });
+        }
+
+        // --- Boss Logic ---
+        const boss = {
+            x: CANVAS_WIDTH / 2 - 50,
+            y: 50,
+            width: 100,
+            height: 50,
+            health: 300,
+            maxHealth: 300,
+            speedX: 3,
+            active: false,
+            draw() {
+                if (!this.active) return;
+                ctx.fillStyle = 'purple';
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+                // Health Bar
+                ctx.fillStyle = 'red';
+                ctx.fillRect(this.x, this.y - 15, this.width, 10);
+                ctx.fillStyle = 'green';
+                ctx.fillRect(this.x, this.y - 15, this.width * (this.health / this.maxHealth), 10);
+            },
+            update() {
+                if (!this.active) return;
+                this.x += this.speedX;
+                if (this.x + this.width > CANVAS_WIDTH || this.x < 0) {
+                    this.speedX *= -1; // Bounce off walls
+                }
+            }
+        };
+
+        function startBossFight() {
+            boss.active = true;
+            enemies = []; // Clear regular enemies
+        }
+
+        function endBossFight() {
+            boss.active = false;
+            // Optionally, increase difficulty even more after boss
+            spawnRate = 15; // Reset spawn rate to be slightly faster after boss
+            score += 100; // Reward for beating boss
+        }
+
+        // --- Utility Function ---
+        function checkCollision(rect1, rect2) {
+            return rect1.x < rect2.x + rect2.width &&
+                   rect1.x + rect1.width > rect2.x &&
+                   rect1.y < rect2.y + rect2.height &&
+                   rect1.y + rect1.height > rect2.y;
+        }
+
+        // --- Input Handling ---
+        document.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+            if (e.key === ' ') { // Spacebar for shooting
+                shootLaser();
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+
+        // --- Game Loop ---
+        function gameLoop() {
+            if (gameOver) {
+                ctx.fillStyle = 'white';
+                ctx.font = '30px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('Game Over! You Died.', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
+                ctx.font = '20px Arial';
+                ctx.fillText(`Final Score: ${score}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 35);
+                return; // Stop the loop
+            }
+
+            // Update game state
+            player.update();
+            updateEnemies();
+            updateLasers();
+            boss.update();
+
+            // Super dupe fast spawning logic (only if boss is not active)
+            if (!boss.active && Math.random() < 1 / spawnRate) {
+                spawnEnemy();
+            }
+
+            // Clear canvas for next frame
+            ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+            // Draw everything
+            player.draw();
+            drawEnemies();
+            drawLasers();
+            boss.draw();
+
+            ctx.fillStyle = 'white';
+            ctx.font = '16px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText(`Score: ${score}`, 10, 20);
+            ctx.fillText(`Use Arrow Keys & Spacebar`, 10, CANVAS_HEIGHT - 10);
+
+            // Request next frame for smooth animation
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Start the game
+        gameLoop();
+    </script>
+</body>
+</html>
