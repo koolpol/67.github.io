@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ULTRABLOCK: PRO MAX</title>
+    <style>
+        body { margin: 0; background: black; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: monospace; }
+        canvas { background: #111; border: 4px solid red; box-shadow: 0 0 30px red; }
+    </style>
+</head>
+<body>
+<canvas id="game" width="400" height="600"></canvas>
+<script>
+/* ================= CORE ================= */
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+let keys = {};
+let frame = 0;
+let gameOver = false;
+let stage = 0;
+
+/* ================= PLAYER ================= */
+const player = {
+    x: 190, y: 390, w: 20, h: 20, vx: 0, vy: 0, speed: 5, jump: 12, gravity: 0.6, onGround: false, color: "#00faff",
+    reset() {
+        this.x = 190;
+        this.y = 530; 
+        this.vx = 0;
+        this.vy = 0;
+    },
+    update() {
+        if (keys.ArrowLeft) this.vx = -this.speed;
+        else if (keys.ArrowRight) this.vx = this.speed;
+        else this.vx = 0;
+
+        if (keys.ArrowUp && this.onGround) {
+            this.vy = -this.jump;
+            this.onGround = false;
+        }
+
+        this.vy += this.gravity;
+        this.x += this.vx;
+        this.y += this.vy;
+
+        if (this.x < 0) this.x = 0;
+        if (this.x + this.w > canvas.width) this.x = canvas.width - this.w;
+        if (this.y > canvas.height) gameOver = true;
+    },
+    draw() {
+        ctx.fillStyle = this.color;
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = this.color;
+        ctx.fillRect(this.x, this.y, this.w, this.h);
+        ctx.shadowBlur = 0;
+    }
+};
+
+/* ================= PLATFORMS ================= */
+const platforms = [
+    { x: 100, y: 550, w: 200, h: 10},
+    { x: 220, y: 425, w: 120, h: 10 },
+    { x: 60, y: 300, w: 120, h: 10 },
+    { x: 220, y: 175, w: 120, h: 10 },
+    { x: 100, y: 50, w: 200, h: 10 }
+];
+
+/* ================= OBSTACLES ================= */
+const obstacles = [];
+const deadlyWalls = [];
+
+function createObstacle(x, y, w, h, vx = 0, vy = 0) {
+    obstacles.push({ x, y, w, h, vx, vy, color: "#ff0000" });
+}
+
+function createDeadlyWall(x, y, w, h) {
+    deadlyWalls.push({ x, y, w, h, color: "#ff0000" });
+}
+
+/* ================= STAGE MANAGEMENT ================= */
+function setupStage() {
+    obstacles.length = 0;
+    deadlyWalls.length = 0;
+    player.reset();
+    if (stage === 1) {
+        createObstacle(180, 500, 40, 40, 1, 0);
+        createObstacle(50, 400, 40, 40, 0, 1);
+    } else if (stage === 2) {
+        createObstacle(100, 500, 40, 40, 2, 0);
+        createObstacle(260, 400, 40, 40, -2, 0);
+        createObstacle(100, 300, 40, 40, 2, 0);
+        createObstacle(260, 200, 40, 40, -2, 0);
+    } else if (stage === 3) {
+        createDeadlyWall(0, 0, 10, canvas.height);
+        createDeadlyWall(canvas.width - 10, 0, 10, canvas.height);
+        createObstacle(50, 500, 30, 30, 3, 0);
+        createObstacle(320, 400, 30, 30, -3, 0);
+        createObstacle(50, 300, 30, 30, 3, 0);
+        createObstacle(320, 200, 30, 30, -3, 0);
+    } else if (stage === 4) {
+        createDeadlyWall(0, 0, canvas.width, 10);
+        createDeadlyWall(0, canvas.height - 10, canvas.width, 10);
+        for (let i = 0; i < 10; i++) {
+            createObstacle(50 + i * 30, 450, 20, 20, 0, Math.random() * 2 + 1);
+        }
+    } else if (stage === 5) {
+        // Stage 5: Unbeatable, super fast lasers + aspects from every Undertale boss
+        // Lasers (Super Fast - Undyne style spears/lasers)
+        for (let i = 0; i < 10; i++) {
+            createObstacle(Math.random() * canvas.width, Math.random() * canvas.height, 5, 50, 0, 15);
+            createObstacle(Math.random() * canvas.width, Math.random() * canvas.height, 50, 5, 15, 0);
+        }
+        // Asgore aspect: Attacks appear from the bottom randomly
+        setInterval(() => {
+            if (stage === 5 && !gameOver) {
+                createObstacle(Math.random() * canvas.width, canvas.height, 30, 30, 0, -10);
+            }
+        }, 300);
+        // Mettaton aspect: Blocks appear suddenly
+        setInterval(() => {
+            if (stage === 5 && !gameOver) {
+                createObstacle(Math.random() * canvas.width, Math.random() * canvas.height, 50, 50, 0, 0);
+            }
+        }, 500);
+        // Sans aspect: Gravity manipulation and impossible patterns (handled by general speed and layout)
+        // Set player gravity higher for more challenge
+        player.gravity = 1.2; 
+    }
+}
+
+
+/* ================= COLLISION DETECTION ================= */
+function checkCollision(rect1, rect2) {
+    return rect1.x < rect2.x + rect2.w &&
+           rect1.x + rect1.w > rect2.x &&
+           rect1.y < rect2.y + rect2.h &&
+           rect1.y + rect1.h > rect2.y;
+}
+
+function updateCollisions() {
+    player.onGround = false;
+    // Platform collisions
+    for (let p of platforms) {
+        if (checkCollision(player, p)) {
+            if (player.vy >= 0 && player.y + player.h <= p.y + player.vy) {
+                player.y = p.y - player.h;
+                player.vy = 0;
+                player.onGround = true;
+            }
+            // Simple horizontal collision to stop player from moving through
+            else if (player.x < p.x + p.w && player.x + player.w > p.x && player.y < p.y + p.h && player.y + player.h > p.y) {
+                 if (player.vx > 0) player.x = p.x - player.w;
+                 else if (player.vx < 0) player.x = p.x + p.w;
+            }
+        }
+    }
+
+    // Obstacle collisions
+    for (let o of obstacles) {
+        if (checkCollision(player, o)) {
+            gameOver = true;
+        }
+    }
+
+    // Deadly wall collisions
+    for (let w of deadlyWalls) {
+        if (checkCollision(player, w)) {
+            gameOver = true;
+        }
+    }
+}
+
+/* ================= GAME LOOP ================= */
+function gameLoop() {
+    if (gameOver) {
+        ctx.fillStyle = "white";
+        ctx.font = "40px monospace";
+        ctx.textAlign = "center";
+        ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2);
+        ctx.font = "20px monospace";
+        ctx.fillText("Press R to restart", canvas.width / 2, canvas.height / 2 + 40);
+        return;
+    }
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Update
+    player.update();
+    for (let o of obstacles) {
+        o.x += o.vx;
+        o.y += o.vy;
+        // Remove obstacles that go off-screen (especially important for stage 5)
+        if (o.y > canvas.height || o.y + o.h < 0 || o.x > canvas.width || o.x + o.w < 0) {
+            obstacles.splice(obstacles.indexOf(o), 1);
+        }
+    }
+    updateCollisions();
+
+    // Check for level completion (reach top platform)
+    if (player.y <= platforms[platforms.length - 1].y && stage < 5) {
+        stage++;
+        setupStage();
+    } else if (player.y <= platforms[platforms.length - 1].y && stage === 5) {
+        // Just keep the stage going as it's "unbeatable"
+    }
+
+    // Draw
+    for (let p of platforms) {
+        ctx.fillStyle = "#aaa";
+        ctx.fillRect(p.x, p.y, p.w, p.h);
+    }
+    for (let o of obstacles) {
+        ctx.fillStyle = o.color;
+        ctx.fillRect(o.x, o.y, o.w, o.h);
+    }
+    for (let w of deadlyWalls) {
+        ctx.fillStyle = w.color;
+        ctx.fillRect(w.x, w.y, w.w, w.h);
+    }
+    player.draw();
+
+    ctx.fillStyle = "white";
+    ctx.font = "16px monospace";
+    ctx.fillText(`Stage: ${stage}`, 50, 20);
+
+    frame++;
+    requestAnimationFrame(gameLoop);
+}
+
+/* ================= EVENT HANDLERS ================= */
+document.addEventListener("keydown", (e) => {
+    keys[e.key] = true;
+    if (gameOver && e.key === 'r') {
+        gameOver = false;
+        stage = 0;
+        player.gravity = 0.6; // Reset gravity
+        setupStage();
+        gameLoop();
+    }
+});
+document.addEventListener("keyup", (e) => {
+    keys[e.key] = false;
+});
+
+/* ================= START GAME ================= */
+setupStage();
+gameLoop();
+</script>
+</body>
+</html>

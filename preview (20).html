@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ULTRABLOCK: PRO MAX</title>
+<style>
+body { margin: 0; background: black; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: monospace; }
+canvas { background: #111; border: 4px solid red; box-shadow: 0 0 30px red; }
+</style>
+</head>
+<body>
+<canvas id="game" width="400" height="600"></canvas>
+<script>
+/* ================= CORE ================= */
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+let keys = {};
+let frame = 0;
+let gameOver = false;
+let stage = 0;
+/* ================= PLAYER ================= */
+const player = {
+x: 190,
+y: 390,
+w: 20,
+h: 20,
+vx: 0,
+vy: 0,
+speed: 5,
+jump: 12,
+gravity: 0.6,
+onGround: false,
+color: "#00faff",
+reset() {
+this.x = 190;
+this.y = 530;
+this.vx = 0;
+this.vy = 0;
+},
+update() {
+if (keys.ArrowLeft) this.vx = -this.speed;
+else if (keys.ArrowRight) this.vx = this.speed;
+else this.vx = 0;
+if (keys.ArrowUp && this.onGround) {
+this.vy = -this.jump;
+this.onGround = false;
+}
+this.vy += this.gravity;
+this.x += this.vx;
+this.y += this.vy;
+if (this.x < 0) this.x = 0;
+if (this.x + this.w > canvas.width) this.x = canvas.width - this.w;
+// Player does not die from falling off screen in Stage 5
+if (this.y > canvas.height && stage !== 5) gameOver = true;
+if (this.y > canvas.height && stage === 5) this.y = -this.h; // Wrap around top for Stage 5
+if (this.y < -this.h && stage === 5) this.y = canvas.height; // Wrap around bottom for Stage 5
+},
+draw() {
+ctx.fillStyle = this.color;
+ctx.shadowBlur = 15;
+ctx.shadowColor = this.color;
+ctx.fillRect(this.x, this.y, this.w, this.h);
+ctx.shadowBlur = 0;
+}
+};
+/* ================= PLATFORMS ================= */
+const platforms = [
+{ x: 100, y: 550, w: 200, h: 10},
+{ x: 220, y: 425, w: 120, h: 10 },
+{ x: 60, y: 300, w: 120, h: 10 },
+{ x: 220, y: 210, w: 120, h: 10 }
+];
+function handlePlatforms() {
+player.onGround = false;
+platforms.forEach(p => {
+if (
+player.x + player.w > p.x && player.x < p.x + p.w &&
+player.y + player.h > p.y && player.y + player.h < p.y + 12 &&
+player.vy >= 0
+) {
+player.y = p.y - player.h;
+player.vy = 0;
+player.onGround = true;
+}
+});
+}
+/* ================= OBSTACLES ================= */
+let blocks = [];
+function spawnBlock() {
+blocks.push({ x: Math.random() * 380, y: -20, size: 20, speed: 4 + frame * 0.002 });
+}
+let lasers = [];
+function spawnLaser() {
+lasers.push({ x: Math.random() * 340, w: 40, warn: 50, fire: 25 });
+}
+let bossTimer = 0;
+let bossPhase = 0;
+let bullets = [];
+function spawnBullet(x, y, vx, vy, size = 8, color = "white") {
+bullets.push({ x, y, vx, vy, size, color });
+}
+function rectHit(a, b) {
+return (
+a.x < b.x + (b.size || b.w) &&
+a.x + a.w > b.x &&
+a.y < b.y + (b.size || 600) &&
+a.y + a.h > b.y
+);
+}
+/* ================= STAGE 5 LOGIC ================= */
+let stage5Timer = 0;
+let stage5Phase = 0;
+let stage5Walls = [];
+
+function handleStage5() {
+stage5Timer++;
+// Phase 1: Mettaton EX style leg sweeps (fast, low bullets)
+if (stage5Phase === 0) {
+if (stage5Timer % 10 === 0) {
+// Bullets come from both sides
+spawnBullet(-10, canvas.height - 20, Math.random() * 3 + 4, 0, 15, "pink");
+spawnBullet(canvas.width + 10, canvas.height - 20, -(Math.random() * 3 + 4), 0, 15, "pink");
+}
+if (stage5Timer > 300) {
+stage5Phase = 1;
+stage5Timer = 0;
+}
+}
+
+// Phase 2: Flowey/Omega Flowey style random large bullets
+if (stage5Phase === 1) {
+if (stage5Timer % 5 === 0) {
+spawnBullet(Math.random() * canvas.width, Math.random() > 0.5 ? -20 : canvas.height + 20, (Math.random() - 0.5) * 4, (Math.random() - 0.5) * 4, Math.random() * 20 + 10, "lime");
+}
+if (stage5Timer > 400) {
+stage5Phase = 2;
+stage5Timer = 0;
+bullets = []; // Clear bullets for next phase
+}
+}
+
+// Phase 3: Sans style Gaster Blasters (predictive, instant lasers)
+if (stage5Phase === 2) {
+if (stage5Timer % 60 === 0) {
+// Spawn a predictive "laser warn" at player's current x
+lasers.push({ x: player.x, w: 30, warn: 40, fire: 15 });
+}
+// Keep existing laser logic in update() function below working for this.
+
+if (stage5Timer > 300) {
+stage5Phase = 3;
+stage5Timer = 0;
+lasers = [];
+}
+}
+
+// Phase 4: Mad Dummy style bouncing bullets
+if (stage5Phase === 3) {
+if (stage5Timer % 20 === 0) {
+// Spawn bullet with initial velocity that will bounce
+let vx = Math.random() * 6 - 3;
+let vy = Math.random() * 6 - 3;
+spawnBullet(canvas.width / 2, canvas.height / 2, vx, vy, 12, "purple");
+}
+
+// Update bouncing bullets with wall reflection
+bullets.forEach(b => {
+if (b.x < 0 || b.x + b.size > canvas.width) b.vx *= -1;
+if (b.y < 0 || b.y + b.size > canvas.height) b.vy *= -1;
+});
+
+if (stage5Timer > 500) {
+stage5Phase = 4;
+stage5Timer = 0;
+bullets = [];
+}
+}
+
+// Phase 5: Toriel style slow moving fireballs + Omega Flowey randomness
+if (stage5Phase === 4) {
+if (stage5Timer % 15 === 0) {
+spawnBullet(Math.random() * canvas.width, -10, 0, Math.random() * 2 + 1, 30, "orange"); // Slow fireballs
+}
+if (stage5Timer % 60 === 0) {
+spawnBullet(Math.random() * canvas.width, Math.random() * canvas.height, (Math.random() - 0.5) * 5, (Math.random() - 0.5) * 5, 25, "red"); // Random faster bullets
+}
+if (stage5Timer > 600) {
+// Stage 5 complete!
+stage = 6;
+gameOver = true; // Indicate victory
+}
+}
+}
+/* ================= UPDATE ================= */
+function update() {
+if (gameOver) return;
+player.update();
+// FIXED: Added stage 3 so player can stand on platforms during boss
+if (stage <= 3) handlePlatforms();
+
+if (stage === 0) {
+if (player.y < 120) {
+stage = 1;
+player.reset();
+}
+}
+
+if (stage === 1) {
+if (frame % 30 === 0) spawnBlock();
+for (let i = blocks.length - 1; i >= 0; i--) {
+const b = blocks[i];
+b.y += b.speed;
+if (rectHit(player, b)) gameOver = true;
+if (b.y > canvas.height) blocks.splice(i, 1);
+}
+if (frame > 900) {
+stage = 2;
+blocks = [];
+player.reset();
+}
+}
+
+if (stage === 2) {
+if (frame % 90 === 0) spawnLaser();
+for (let i = lasers.length - 1; i >= 0; i--) {
+const l = lasers[i];
+l.warn--;
+if (l.warn <= 0) {
+l.fire--;
+if (player.x < l.x + l.w && player.x + player.w > l.x) {
+gameOver = true;
+}
+}
+if (l.fire <= 0) lasers.splice(i, 1);
+}
+if (frame > 1800) {
+stage = 3;
+lasers = [];
+player.reset();
+}
+}
+
+if (stage === 3) {
+bossTimer++;
+if (bossTimer % 25 === 0) {
+spawnBullet(Math.random() * 400, -10, 0, 5 + bossPhase);
+}
+bullets.forEach(b => {
+b.x += b.vx;
+b.y += b.vy;
+if (rectHit(player, b)) gameOver = true;
+});
+bullets = bullets.filter(b => b.y < 650);
+if (bossTimer > 500) {
+bossPhase++;
+bossTimer = 0;
+bullets = [];
+if (bossPhase >= 4) stage = 4;
+}
+}
+
+if (stage === 4) {
+// Stage 4 is just the "You Survived" screen in original code. Transition to Stage 5 automatically.
+stage = 5;
+player.reset();
+bullets = [];
+lasers = [];
+frame = 0; // Reset frame for stage 5 timing
+}
+
+if (stage === 5) {
+handleStage5();
+// Update bullets and lasers for Stage 5
+bullets.forEach(b => {
+b.x += b.vx;
+b.y += b.vy;
+if (rectHit(player, b)) gameOver = true;
+});
+// Filter bullets that are far off-screen
+bullets = bullets.filter(b => b.y > -100 && b.y < canvas.height + 100 && b.x > -100 && b.x < canvas.width + 100);
+
+// Update lasers (used in Phase 3 of stage 5)
+for (let i = lasers.length - 1; i >= 0; i--) {
+const l = lasers[i];
+l.warn--;
+if (l.warn <= 0) {
+l.fire--;
+if (player.x < l.x + l.w && player.x + player.w > l.x) {
+gameOver = true;
+}
+}
+if (l.fire <= 0) lasers.splice(i, 1);
+}
+}
+
+frame++;
+}
+
+/* ================= DRAW ================= */
+function draw() {
+ctx.clearRect(0, 0, canvas.width, canvas.height);
+// FIXED: Keep platforms visible in Stage 3
+if (stage <= 3) {
+platforms.forEach(p => {
+ctx.fillStyle = "#444";
+ctx.fillRect(p.x, p.y, p.w, p.h);
+});
+}
+blocks.forEach(b => {
+ctx.fillStyle = "red";
+ctx.fillRect(b.x, b.y, b.size, b.size);
+});
+lasers.forEach(l => {
+if (l.warn > 0) {
+ctx.strokeStyle = "rgba(255,0,0,0.5)";
+ctx.strokeRect(l.x, 0, l.w, canvas.height);
+} else {
+ctx.fillStyle = "white";
+ctx.fillRect(l.x, 0, l.w, canvas.height);
+}
+});
+bullets.forEach(b => {
+ctx.fillStyle = b.color || "white";
+ctx.fillRect(b.x, b.y, b.size, b.size);
+});
+player.draw();
+ctx.fillStyle = "white";
+ctx.textAlign = "left";
+ctx.fillText(`STAGE ${stage}`, 10, 20);
+
+if (gameOver) {
+ctx.fillStyle = "rgba(255,0,0,0.6)";
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+ctx.fillStyle = "white";
+ctx.textAlign = "center";
+ctx.font = "28px monospace";
+if (stage === 6) {
+ctx.fillText("YOU ARE A TRUE CHAMPION", canvas.width / 2, canvas.height / 2);
+} else {
+ctx.fillText("YOU DIED", canvas.width / 2, canvas.height / 2);
+}
+ctx.font = "16px monospace";
+ctx.fillText("Refresh to Restart", canvas.width / 2, canvas.height / 2 + 40);
+}
+}
+function loop() {
+update();
+draw();
+requestAnimationFrame(loop);
+}
+addEventListener("keydown", e => keys[e.key] = true);
+addEventListener("keyup", e => keys[e.key] = false);
+loop();
+</script>
+</body>
+</html>

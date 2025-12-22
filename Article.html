@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Article Formatter</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Source+Sans+Pro:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --light-bg: #f8f9fa;
+            --dark-text: #333;
+            --light-text: #777;
+            --border-radius: 8px;
+            --box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        body {
+            font-family: 'Source Sans Pro', sans-serif;
+            background-color: #f5f7fa;
+            color: var(--dark-text);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 30px 0;
+            background-color: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.8rem;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: var(--light-text);
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        @media (max-width: 900px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .input-section, .output-section {
+            background-color: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 30px;
+            height: fit-content;
+        }
+
+        .section-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.8rem;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title i {
+            color: var(--secondary-color);
+        }
+
+        #article-input {
+            width: 100%;
+            height: 350px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            font-family: 'Source Sans Pro', sans-serif;
+            font-size: 1rem;
+            line-height: 1.6;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+
+        #article-input:focus {
+            outline: none;
+            border-color: var(--secondary-color);
+        }
+
+        .format-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .format-btn {
+            padding: 10px 20px;
+            background-color: var(--light-bg);
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Source Sans Pro', sans-serif;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .format-btn:hover {
+            background-color: #e9ecef;
+        }
+
+        .format-btn.active {
+            background-color: var(--secondary-color);
+            color: white;
+            border-color: var(--secondary-color);
+        }
+
+        .action-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 25px;
+        }
+
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: var(--border-radius);
+            font-family: 'Source Sans Pro', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-primary {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2980b9;
+            transform: translateY(-3px);
+        }
+
+        .btn-secondary {
+            background-color: #ecf0f1;
+            color: var(--primary-color);
+        }
+
+        .btn-secondary:hover {
+            background-color: #dde4e6;
+        }
+
+        .article-output {
+            background-color: white;
+            padding: 40px;
+            border-radius: var(--border-radius);
+            min-height: 550px;
+            font-family: 'Playfair Display', serif;
+            line-height: 1.8;
+        }
+
+        .formatted-title {
+            font-size: 2.5rem;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            line-height: 1.3;
+            text-align: center;
+        }
+
+        .formatted-meta {
+            color: var(--light-text);
+            font-size: 1rem;
+            font-family: 'Source Sans Pro', sans-serif;
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .formatted-content {
+            font-size: 1.2rem;
+        }
+
+        .formatted-content p {
+            margin-bottom: 1.5rem;
+            text-align: justify;
+        }
+
+        .formatted-content h2 {
+            font-size: 1.8rem;
+            color: var(--primary-color);
+            margin: 2rem 0 1rem;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .formatted-content h3 {
+            font-size: 1.5rem;
+            color: var(--secondary-color);
+            margin: 1.5rem 0 1rem;
+        }
+
+        .formatted-content blockquote {
+            border-left: 4px solid var(--secondary-color);
+            padding-left: 20px;
+            margin: 1.5rem 0;
+            font-style: italic;
+            color: #555;
+        }
+
+        .formatted-content ul, .formatted-content ol {
+            margin-left: 20px;
+            margin-bottom: 1.5rem;
+        }
+
+        .formatted-content li {
+            margin-bottom: 0.5rem;
+        }
+
+        .highlight {
+            background-color: #fff9c4;
+            padding: 2px 4px;
+            border-radius: 2px;
+        }
+
+        .word-count {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+            color: var(--light-text);
+            font-family: 'Source Sans Pro', sans-serif;
+            font-size: 0.9rem;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: var(--light-text);
+            font-size: 0.9rem;
+            margin-top: 30px;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: var(--secondary-color);
+        }
+
+        .loading i {
+            margin-right: 10px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .placeholder-text {
+            color: #aaa;
+            font-style: italic;
+            text-align: center;
+            margin-top: 100px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Professional Article Formatter</h1>
+            <p class="subtitle">Transform your raw text into a professionally formatted article with proper typography, structure, and styling. Perfect for blog posts, reports, and publications.</p>
+        </header>
+
+        <div class="main-content">
+            <section class="input-section">
+                <h2 class="section-title"><i class="fas fa-edit"></i> Input Your Text</h2>
+                <textarea id="article-input" placeholder="Paste or type your article text here...">The Impact of Digital Transformation on Modern Businesses
+
+In recent years, digital transformation has become a critical imperative for organizations across all industries. This shift goes beyond simply adopting new technologies; it represents a fundamental rethinking of how businesses operate and deliver value to customers.
+
+The acceleration of digital transformation was particularly evident during the global pandemic, which forced companies to rapidly adapt to remote work, digital customer interactions, and cloud-based operations. Organizations that had already invested in digital infrastructure found themselves better positioned to navigate these challenges.
+
+Key Drivers of Digital Transformation
+
+Several factors are driving the urgent need for digital transformation:
+- Changing customer expectations for seamless digital experiences
+- The proliferation of data and analytics capabilities
+- Competitive pressure from digitally-native companies
+- The need for operational efficiency and agility
+
+As noted by industry analyst Michael Porter, "The digital transformation of business is today's version of the industrial revolution." This comparison highlights the profound impact that digital technologies are having on competitive dynamics and value creation.
+
+Implementing a Successful Digital Strategy
+
+To successfully navigate digital transformation, organizations should consider the following approaches:
+1. Develop a clear digital vision aligned with business objectives
+2. Foster a culture of innovation and digital literacy
+3. Invest in scalable cloud infrastructure
+4. Prioritize cybersecurity throughout the transformation
+5. Implement agile methodologies to accelerate development
+
+Conclusion
+
+Digital transformation is no longer optional for businesses seeking to remain competitive. While the journey presents significant challenges, including cultural resistance and technical complexity, the potential rewards are substantial. Organizations that successfully harness digital technologies can achieve greater efficiency, enhanced customer experiences, and new revenue streams. The future belongs to those who can adapt and innovate in this rapidly evolving digital landscape.</textarea>
+                
+                <div class="format-controls">
+                    <button class="format-btn" data-format="title"><i class="fas fa-heading"></i> Title</button>
+                    <button class="format-btn" data-format="subtitle"><i class="fas fa-subscript"></i> Subtitle</button>
+                    <button class="format-btn" data-format="bold"><i class="fas fa-bold"></i> Bold</button>
+                    <button class="format-btn" data-format="highlight"><i class="fas fa-highlighter"></i> Highlight</button>
+                    <button class="format-btn" data-format="quote"><i class="fas fa-quote-right"></i> Quote</button>
+                    <button class="format-btn" data-format="list"><i class="fas fa-list-ul"></i> List</button>
+                </div>
+                
+                <div class="action-buttons">
+                    <button class="btn btn-secondary" id="clear-btn">
+                        <i class="fas fa-broom"></i> Clear Text
+                    </button>
+                    <button class="btn btn-primary" id="format-btn">
+                        <i class="fas fa-magic"></i> Format Article
+                    </button>
+                </div>
+                
+                <div class="loading" id="loading-indicator">
+                    <i class="fas fa-spinner"></i> Formatting your article...
+                </div>
+            </section>
+            
+            <section class="output-section">
+                <h2 class="section-title"><i class="fas fa-newspaper"></i> Formatted Article</h2>
+                <div class="article-output" id="article-output">
+                    <div class="placeholder-text">
+                        <i class="fas fa-newspaper fa-3x" style="margin-bottom: 20px; color: #e0e0e0;"></i>
+                        <p>Your professionally formatted article will appear here.</p>
+                        <p>Click "Format Article" to transform your text.</p>
+                    </div>
+                </div>
+                
+                <div class="word-count">
+                    <span id="word-count">Words: 0</span>
+                    <span id="read-time">Read time: 0 min</span>
+                </div>
+            </section>
+        </div>
+        
+        <footer>
+            <p>Professional Article Formatter &copy; 2023 | Transform any text into publication-ready content</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const articleInput = document.getElementById('article-input');
+            const articleOutput = document.getElementById('article-output');
+            const formatBtn = document.getElementById('format-btn');
+            const clearBtn = document.getElementById('clear-btn');
+            const loadingIndicator = document.getElementById('loading-indicator');
+            const wordCountElement = document.getElementById('word-count');
+            const readTimeElement = document.getElementById('read-time');
+            const formatButtons = document.querySelectorAll('.format-btn');
+            
+            // Sample formatted article for initial display
+            const sampleFormattedArticle = `
+                <h1 class="formatted-title">The Impact of Digital Transformation on Modern Businesses</h1>
+                <div class="formatted-meta">
+                    <span><i class="far fa-calendar"></i> October 15, 2023</span> | 
+                    <span><i class="far fa-user"></i> Business Insights Team</span> | 
+                    <span><i class="far fa-clock"></i> 4 min read</span>
+                </div>
+                <div class="formatted-content">
+                    <p>In recent years, <span class="highlight">digital transformation</span> has become a critical imperative for organizations across all industries. This shift goes beyond simply adopting new technologies; it represents a fundamental rethinking of how businesses operate and deliver value to customers.</p>
+                    
+                    <p>The acceleration of digital transformation was particularly evident during the global pandemic, which forced companies to rapidly adapt to remote work, digital customer interactions, and cloud-based operations. Organizations that had already invested in digital infrastructure found themselves better positioned to navigate these challenges.</p>
+                    
+                    <h2>Key Drivers of Digital Transformation</h2>
+                    
+                    <p>Several factors are driving the urgent need for digital transformation:</p>
+                    
+                    <ul>
+                        <li>Changing customer expectations for seamless digital experiences</li>
+                        <li>The proliferation of data and analytics capabilities</li>
+                        <li>Competitive pressure from digitally-native companies</li>
+                        <li>The need for operational efficiency and agility</li>
+                    </ul>
+                    
+                    <p>As noted by industry analyst <strong>Michael Porter</strong>, <blockquote>"The digital transformation of business is today's version of the industrial revolution."</blockquote> This comparison highlights the profound impact that digital technologies are having on competitive dynamics and value creation.</p>
+                    
+                    <h2>Implementing a Successful Digital Strategy</h2>
+                    
+                    <p>To successfully navigate digital transformation, organizations should consider the following approaches:</p>
+                    
+                    <ol>
+                        <li>Develop a clear digital vision aligned with business objectives</li>
+                        <li>Foster a culture of innovation and digital literacy</li>
+                        <li>Invest in scalable cloud infrastructure</li>
+                        <li>Prioritize cybersecurity throughout the transformation</li>
+                        <li>Implement agile methodologies to accelerate development</li>
+                    </ol>
+                    
+                    <h3>Conclusion</h3>
+                    
+                    <p>Digital transformation is no longer optional for businesses seeking to remain competitive. While the journey presents significant challenges, including cultural resistance and technical complexity, the potential rewards are substantial. Organizations that successfully harness digital technologies can achieve greater efficiency, enhanced customer experiences, and new revenue streams. The future belongs to those who can adapt and innovate in this rapidly evolving digital landscape.</p>
+                </div>
+            `;
+            
+            // Display sample article on page load
+            articleOutput.innerHTML = sampleFormattedArticle;
+            updateWordCount(articleInput.value);
+            
+            // Format button functionality
+            formatBtn.addEventListener('click', function() {
+                formatArticle();
+            });
+            
+            // Clear button functionality
+            clearBtn.addEventListener('click', function() {
+                articleInput.value = '';
+                articleOutput.innerHTML = `
+                    <div class="placeholder-text">
+                        <i class="fas fa-newspaper fa-3x" style="margin-bottom: 20px; color: #e0e0e0;"></i>
+                        <p>Your professionally formatted article will appear here.</p>
+                        <p>Click "Format Article" to transform your text.</p>
+                    </div>
+                `;
+                updateWordCount('');
+            });
+            
+            // Format buttons functionality
+            formatButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const formatType = this.getAttribute('data-format');
+                    applyFormatting(formatType);
+                    
+                    // Toggle active state
+                    formatButtons.forEach(btn => btn.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Remove active state after a short delay
+                    setTimeout(() => {
+                        this.classList.remove('active');
+                    }, 300);
+                });
+            });
+            
+            // Update word count as user types
+            articleInput.addEventListener('input', function() {
+                updateWordCount(this.value);
+            });
+            
+            // Format the article
+            function formatArticle() {
+                const inputText = articleInput.value.trim();
+                
+                if (!inputText) {
+                    alert('Please enter some text to format.');
+                    return;
+                }
+                
+                // Show loading indicator
+                loadingIndicator.style.display = 'block';
+                
+                // Simulate processing delay
+                setTimeout(() => {
+                    // Extract title (first line or first 5 words)
+                    const lines = inputText.split('\n').filter(line => line.trim() !== '');
+                    let title = lines.length > 0 ? lines[0] : 'Professional Article';
+                    
+                    // If title is too long, shorten it
+                    if (title.length > 100) {
+                        title = title.substring(0, 100) + '...';
+                    }
+                    
+                    // Process the content
+                    let content = inputText;
+                    
+                    // Remove the title if it's the first line
+                    if (lines.length > 0 && lines[0] === title) {
+                        content = lines.slice(1).join('\n');
+                    }
+                    
+                    // Split into paragraphs
+                    let paragraphs = content.split('\n\n').filter(p => p.trim() !== '');
+                    
+                    // If no paragraph breaks, split by sentences
+                    if (paragraphs.length <= 1) {
+                        paragraphs = content.split('. ').filter(p => p.trim() !== '');
+                        // Add period back to each paragraph except the last one
+                        paragraphs = paragraphs.map((p, i) => 
+                            i < paragraphs.length - 1 ? p + '.' : p
+                        );
+                    }
+                    
+                    // Generate formatted HTML
+                    let formattedHTML = `
+                        <h1 class="formatted-title">${title}</h1>
+                        <div class="formatted-meta">
+                            <span><i class="far fa-calendar"></i> ${getCurrentDate()}</span> | 
+                            <span><i class="far fa-user"></i> Article Author</span> | 
+                            <span><i class="far fa-clock"></i> ${calculateReadTime(inputText)} min read</span>
+                        </div>
+                        <div class="formatted-content">
+                    `;
+                    
+                    // Process each paragraph
+                    paragraphs.forEach(paragraph => {
+                        let processedParagraph = paragraph.trim();
+                        
+                        // Check if paragraph is a heading (short and ends without period)
+                        if (processedParagraph.length < 100 && !processedParagraph.endsWith('.') && !processedParagraph.endsWith(':')) {
+                            // Check if it looks like a numbered list item
+                            if (/^\d+\./.test(processedParagraph)) {
+                                formattedHTML += `<h3>${processedParagraph}</h3>`;
+                            } else {
+                                formattedHTML += `<h2>${processedParagraph}</h2>`;
+                            }
+                        } 
+                        // Check if paragraph is a list
+                        else if (processedParagraph.includes('- ') || /^\d+\./.test(processedParagraph.split('\n')[0])) {
+                            const listItems = processedParagraph.split('\n').filter(item => item.trim() !== '');
+                            const isOrdered = /^\d+\./.test(listItems[0]);
+                            
+                            formattedHTML += `<${isOrdered ? 'ol' : 'ul'}>`;
+                            listItems.forEach(item => {
+                                // Remove bullet or number
+                                const listItemText = item.replace(/^[-\d\.\s]+/, '').trim();
+                                formattedHTML += `<li>${listItemText}</li>`;
+                            });
+                            formattedHTML += `</${isOrdered ? 'ol' : 'ul'}>`;
+                        }
+                        // Check if paragraph is a quote (starts with quote or contains "said" or "noted")
+                        else if (processedParagraph.startsWith('"') || 
+                                 processedParagraph.includes('said') || 
+                                 processedParagraph.includes('noted') ||
+                                 processedParagraph.includes('according to')) {
+                            formattedHTML += `<blockquote>${processedParagraph}</blockquote>`;
+                        }
+                        // Regular paragraph
+                        else {
+                            // Add some simple formatting
+                            // Bold key terms
+                            const keyTerms = ['digital transformation', 'business', 'organization', 'technology', 'strategy'];
+                            keyTerms.forEach(term => {
+                                if (processedParagraph.toLowerCase().includes(term)) {
+                                    const regex = new RegExp(`(${term})`, 'gi');
+                                    processedParagraph = processedParagraph.replace(regex, '<strong>$1</strong>');
+                                }
+                            });
+                            
+                            // Highlight important phrases
+                            if (processedParagraph.length > 150) {
+                                const sentences = processedParagraph.split('. ');
+                                if (sentences.length > 0) {
+                                    // Highlight the first sentence
+                                    sentences[0] = `<span class="highlight">${sentences[0]}</span>`;
+                                    processedParagraph = sentences.join('. ');
+                                }
+                            }
+                            
+                            formattedHTML += `<p>${processedParagraph}</p>`;
+                        }
+                    });
+                    
+                    formattedHTML += `</div>`;
+                    
+                    // Display formatted article
+                    articleOutput.innerHTML = formattedHTML;
+                    
+                    // Hide loading indicator
+                    loadingIndicator.style.display = 'none';
+                    
+                    // Update word count
+                    updateWordCount(inputText);
+                }, 800);
+            }
+            
+            // Apply formatting to selected text in input
+            function applyFormatting(formatType) {
+                const textarea = articleInput;
+                const start = textarea.selectionStart;
+                const end = textarea.selectionEnd;
+                const selectedText = textarea.value.substring(start, end);
+                
+                if (!selectedText && formatType !== 'list') {
+                    return; // No text selected
+                }
+                
+                let formattedText = '';
+                
+                switch(formatType) {
+                    case 'title':
+                        formattedText = `\n${selectedText.toUpperCase()}\n`;
+                        break;
+                    case 'subtitle':
+                        formattedText = `\n## ${selectedText}\n`;
+                        break;
+                    case 'bold':
+                        formattedText = `**${selectedText}**`;
+                        break;
+                    case 'highlight':
+                        formattedText = `===${selectedText}===`;
+                        break;
+                    case 'quote':
+                        formattedText = `"> ${selectedText}"`;
+                        break;
+                    case 'list':
+                        formattedText = "- List item 1\n- List item 2\n- List item 3";
+                        // If text is selected, convert it to list items
+                        if (selectedText) {
+                            const items = selectedText.split('\n').filter(item => item.trim() !== '');
+                            formattedText = items.map(item => `- ${item}`).join('\n');
+                        }
+                        break;
+                }
+                
+                // Insert formatted text
+                textarea.value = textarea.value.substring(0, start) + formattedText + textarea.value.substring(end);
+                
+                // Update word count
+                updateWordCount(textarea.value);
+            }
+            
+            // Update word count and reading time
+            function updateWordCount(text) {
+                const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+                wordCountElement.textContent = `Words: ${words}`;
+                
+                // Calculate reading time (average 200 words per minute)
+                const readingTime = Math.ceil(words / 200);
+                readTimeElement.textContent = `Read time: ${readingTime} min`;
+            }
+            
+            // Calculate reading time for formatted article
+            function calculateReadTime(text) {
+                const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+                return Math.ceil(words / 200);
+            }
+            
+            // Get current date in readable format
+            function getCurrentDate() {
+                const now = new Date();
+                const options = { year: 'numeric', month: 'long', day: 'numeric' };
+                return now.toLocaleDateString('en-US', options);
+            }
+            
+            // Auto-format on Ctrl+Enter
+            document.addEventListener('keydown', function(e) {
+                if (e.ctrlKey && e.key === 'Enter') {
+                    formatArticle();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Academic Dishonesty Research | Phonk Edition</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --phonk-dark: #0a0a0f;
+            --phonk-purple: #6a11cb;
+            --phonk-blue: #2575fc;
+            --phonk-red: #ff2a6d;
+            --phonk-cyan: #05d9e8;
+            --phonk-gray: #a9b7c6;
+            --glitch-color1: #ff2a6d;
+            --glitch-color2: #05d9e8;
+        }
+        
+        body {
+            font-family: 'Share Tech Mono', monospace;
+            background-color: var(--phonk-dark);
+            color: var(--phonk-gray);
+            line-height: 1.6;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(106, 17, 203, 0.1) 0%, transparent 20%),
+                radial-gradient(circle at 90% 80%, rgba(37, 117, 252, 0.1) 0%, transparent 20%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* Header Styles */
+        header {
+            padding: 40px 0 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 42, 109, 0.3);
+            margin-bottom: 40px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .glitch-container {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .glitch {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 3.5rem;
+            font-weight: 900;
+            color: var(--phonk-cyan);
+            position: relative;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            text-shadow: 0 0 10px rgba(5, 217, 232, 0.7);
+            margin-bottom: 10px;
+        }
+        
+        .glitch::before, .glitch::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .glitch::before {
+            left: 4px;
+            text-shadow: -4px 0 var(--glitch-color1);
+            clip: rect(44px, 450px, 56px, 0);
+            animation: glitch-anim-1 5s infinite linear alternate-reverse;
+        }
+        
+        .glitch::after {
+            left: -4px;
+            text-shadow: -4px 0 var(--glitch-color2);
+            clip: rect(44px, 450px, 56px, 0);
+            animation: glitch-anim-2 5s infinite linear alternate-reverse;
+        }
+        
+        @keyframes glitch-anim-1 {
+            0% { clip: rect(31px, 9999px, 94px, 0); }
+            4% { clip: rect(112px, 9999px, 76px, 0); }
+            8% { clip: rect(85px, 9999px, 77px, 0); }
+            12% { clip: rect(27px, 9999px, 97px, 0); }
+            16% { clip: rect(64px, 9999px, 98px, 0); }
+            100% { clip: rect(68px, 9999px, 92px, 0); }
+        }
+        
+        @keyframes glitch-anim-2 {
+            0% { clip: rect(65px, 9999px, 100px, 0); }
+            4% { clip: rect(52px, 9999px, 74px, 0); }
+            8% { clip: rect(79px, 9999px, 85px, 0); }
+            12% { clip: rect(75px, 9999px, 55px, 0); }
+            16% { clip: rect(98px, 9999px, 70px, 0); }
+            100% { clip: rect(95px, 9999px, 66px, 0); }
+        }
+        
+        .subtitle {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--phonk-red);
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+            margin-top: 10px;
+            text-shadow: 0 0 5px rgba(255, 42, 109, 0.5);
+        }
+        
+        /* Topic Navigation */
+        .topic-nav {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin: 30px 0 40px;
+        }
+        
+        .topic-btn {
+            background: rgba(10, 10, 15, 0.8);
+            border: 1px solid var(--phonk-purple);
+            color: var(--phonk-gray);
+            padding: 8px 15px;
+            font-family: 'Share Tech Mono', monospace;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-radius: 3px;
+            font-size: 0.9rem;
+        }
+        
+        .topic-btn:hover {
+            background: var(--phonk-purple);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(106, 17, 203, 0.4);
+        }
+        
+        .topic-btn.active {
+            background: var(--phonk-purple);
+            color: white;
+            box-shadow: 0 0 10px rgba(106, 17, 203, 0.7);
+        }
+        
+        /* Content Sections */
+        .content-section {
+            display: none;
+            background: rgba(15, 15, 25, 0.8);
+            border: 1px solid rgba(37, 117, 252, 0.3);
+            border-radius: 5px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .content-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, var(--phonk-purple), var(--phonk-blue));
+        }
+        
+        .content-section.active {
+            display: block;
+            animation: fadeIn 0.5s forwards;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .topic-title {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--phonk-cyan);
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(5, 217, 232, 0.3);
+            text-shadow: 0 0 5px rgba(5, 217, 232, 0.5);
+        }
+        
+        .topic-number {
+            display: inline-block;
+            background: var(--phonk-red);
+            color: var(--phonk-dark);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 36px;
+            margin-right: 15px;
+            font-weight: bold;
+        }
+        
+        .topic-content {
+            font-size: 1.1rem;
+            line-height: 1.7;
+        }
+        
+        .highlight-quote {
+            color: var(--phonk-red);
+            font-weight: bold;
+            font-style: italic;
+            text-shadow: 0 0 3px rgba(255, 42, 109, 0.3);
+        }
+        
+        /* Retro elements */
+        .scanlines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            background: linear-gradient(
+                to bottom,
+                transparent 50%,
+                rgba(0, 0, 0, 0.2) 50%
+            );
+            background-size: 100% 4px;
+            z-index: 999;
+            opacity: 0.3;
+        }
+        
+        .vignette {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            box-shadow: inset 0 0 200px rgba(0, 0, 0, 0.9);
+            z-index: 998;
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
+        
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 30px 0;
+            margin-top: 40px;
+            border-top: 1px solid rgba(255, 42, 109, 0.3);
+            color: var(--phonk-gray);
+            font-size: 0.9rem;
+        }
+        
+        .phonk-label {
+            color: var(--phonk-red);
+            font-family: 'Orbitron', sans-serif;
+            letter-spacing: 1px;
+            margin-top: 10px;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .glitch {
+                font-size: 2.5rem;
+            }
+            
+            .subtitle {
+                font-size: 1rem;
+            }
+            
+            .topic-title {
+                font-size: 1.5rem;
+            }
+            
+            .topic-btn {
+                padding: 6px 10px;
+                font-size: 0.8rem;
+            }
+            
+            .content-section {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    
+<!-- Phonk Music -->
+<audio id="phonk" loop>
+    <!-- Check that this file path is correct -->
+    <source src="phonk-phonk-music-340264.mp3" type="audio/mpeg">
+    <!-- Optional: Add an Ogg source for better browser compatibility -->
+    <!-- <source src="phonk-phonk-music-340264.ogg" type="audio/ogg"> -->
+    Your browser does not support the audio element.
+</audio>
+
+<!-- Add a button for user interaction to start the music -->
+<button onclick="document.getElementById('phonk').play()">Play Phonk Music</button>
+
+
+    <!-- Visual Effects -->
+    <div class="scanlines"></div>
+    <div class="vignette"></div>
+    
+    <div class="container">
+        <header>
+            <div class="glitch-container">
+                <h1 class="glitch" data-text="ACADEMIC DISHONESTY">ACADEMIC DISHONESTY</h1>
+            </div>
+            <p class="subtitle">RESEARCH ANALYSIS | U.S. & MALAYSIAN STUDIES | PHONK THEME</p>
+        </header>
+        
+        <div class="topic-nav" id="topicNav">
+            <!-- Topic navigation buttons will be generated by JavaScript -->
+        </div>
+        
+        <main id="contentContainer">
+            <!-- Topic sections will be populated by JavaScript -->
+        </main>
+        
+        <footer>
+            <p>Comparative Analysis of U.S. and Malaysian Research Studies</p>
+            <p class="phonk-label">PHONK THEME | ACADEMIC INTEGRITY RESEARCH</p>
+        </footer>
+    </div>
+
+    <script>
+        // Topic data - using the exact words from the provided notes
+        const topics = [
+            {
+                id: 1,
+                title: "Prevalence & Global Nature",
+                content: `Academic dishonesty is a widespread and growing international concern, characterized as a <span class="highlight-quote">"common and unending battle"</span> in educational institutions from the United States to Malaysia, encompassing behaviors from plagiarism to unauthorized collaboration.`
+            },
+            {
+                id: 2,
+                title: "Research Methodologies",
+                content: `Studies are moving beyond traditional surveys that may not capture <span class="highlight-quote">"students' true feelings"</span>, employing mixed methods like qualitative focus groups—which reveal candid rationalizations—and quantitative questionnaires to statistically analyze contributing factors.`
+            },
+            {
+                id: 3,
+                title: "Student Perceptions and Normalization",
+                content: `Students often exhibit a normalized or ambivalent attitude toward cheating, describing it as <span class="highlight-quote">"almost kind of acceptable"</span> and something that is <span class="highlight-quote">"a big deal if you don't cheat."</span> Quantitative data reflects this hesitancy, with students tending to <span class="highlight-quote">"neither agree nor disagree"</span> with their own participation.`
+            },
+            {
+                id: 4,
+                title: "Externalization of Blame",
+                content: `A consistent pattern is the shifting of responsibility away from the self. Students blame external actors, stating <span class="highlight-quote">"teachers know it and students know it,"</span> and attribute their actions to <span class="highlight-quote">"peer behaviour"</span> and lax <span class="highlight-quote">"university's regulations,"</span> suggesting a perceived lack of institutional control.`
+            },
+            {
+                id: 5,
+                title: "Motivational Drivers",
+                content: `The primary catalyst for dishonesty is often extrinsic pressure to succeed. Students admit <span class="highlight-quote">"if cheating is going to get you the grade, then that's the way to do it,"</span> a sentiment supported by findings that higher extrinsic motivation correlates with increased dishonest behavior.`
+            },
+            {
+                id: 6,
+                title: "Technological Facilitation",
+                content: `Technology, especially the Internet, has dramatically simplified acts like plagiarism. Students report, <span class="highlight-quote">"I can go home, cut and paste,"</span> noting the ease of accessing pre-written materials online and a perceived technological gap with instructors.`
+            },
+            {
+                id: 7,
+                title: "Peer Culture and Silence",
+                content: `A powerful, unspoken peer code enforces silence and complicity. Students describe <span class="highlight-quote">"an unspoken rule...you just don't tell,"</span> a dynamic explained by social learning theory where behaviors are observed and imitated within the peer group.`
+            },
+            {
+                id: 8,
+                title: "Institutional Policy and Enforcement",
+                content: `School policies are frequently perceived as ineffective, characterized as a <span class="highlight-quote">"five-minute spiel"</span> that is <span class="highlight-quote">"never really been enforced."</span> Research underscores that clear, understood, and actively upheld regulations are critical for deterrence.`
+            },
+            {
+                id: 9,
+                title: "Demographic Variations",
+                content: `Significant differences exist among student groups. Studies confirm male students and those with lower cumulative GPAs demonstrate a higher propensity for academic dishonesty, while factors like impression management can obscure these tendencies.`
+            },
+            {
+                id: 10,
+                title: "Consequences and Implications",
+                content: `The conclusions are grave and forward-looking. Researchers warn that campus cheating may predict future <span class="highlight-quote">"dishonest behaviour in the workplace,"</span> creating a cycle of ethical compromise. Both studies stress the urgent need for proactive moral education, honor systems, and a shared institutional-student responsibility to foster integrity.`
+            }
+        ];
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            const topicNav = document.getElementById('topicNav');
+            const contentContainer = document.getElementById('contentContainer');
+            
+            // Create navigation buttons
+            topics.forEach(topic => {
+                // Create navigation button
+                const button = document.createElement('button');
+                button.className = 'topic-btn';
+                button.textContent = `${topic.id}. ${topic.title}`;
+                button.dataset.topicId = topic.id;
+                
+                button.addEventListener('click', function() {
+                    // Set active button
+                    document.querySelectorAll('.topic-btn').forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+                    this.classList.add('active');
+                    
+                    // Show selected topic
+                    showTopic(topic.id);
+                });
+                
+                topicNav.appendChild(button);
+                
+                // Create content section
+                const section = document.createElement('section');
+                section.className = 'content-section';
+                section.id = `topic-${topic.id}`;
+                
+                section.innerHTML = `
+                    <h2 class="topic-title"><span class="topic-number">${topic.id}</span>${topic.title}</h2>
+                    <div class="topic-content">${topic.content}</div>
+                `;
+                
+                contentContainer.appendChild(section);
+            });
+            
+            // Activate first topic by default
+            document.querySelector('.topic-btn').classList.add('active');
+            showTopic(1);
+            
+            // Add glitch effect to random elements periodically
+            setInterval(() => {
+                const randomTopic = Math.floor(Math.random() * topics.length) + 1;
+                const topicElement = document.getElementById(`topic-${randomTopic}`);
+                
+                if (topicElement) {
+                    topicElement.classList.add('pulse');
+                    setTimeout(() => {
+                        topicElement.classList.remove('pulse');
+                    }, 1000);
+                }
+            }, 3000);
+        });
+        
+        // Function to show selected topic
+        function showTopic(topicId) {
+            // Hide all content sections
+            document.querySelectorAll('.content-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Show selected topic
+            const selectedTopic = document.getElementById(`topic-${topicId}`);
+            if (selectedTopic) {
+                selectedTopic.classList.add('active');
+            }
+        }
+        
+        // Add random glitch effect to header text
+        const glitchText = document.querySelector('.glitch');
+        setInterval(() => {
+            glitchText.style.transform = `translate(${Math.random() * 4 - 2}px, ${Math.random() * 4 - 2}px)`;
+        }, 100);
+    </script>
+</body>
+</html>
+
