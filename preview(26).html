@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>The Hardest JS Game</title>
+    <style>
+        body { margin: 0; background: #111; display: flex; justify-content: center; align-items: center; height: 100vh; color: white; font-family: sans-serif; overflow: hidden; }
+        canvas { border: 4px solid #fff; background: #000; box-shadow: 0 0 20px rgba(255,255,255,0.2); }
+        #ui { position: absolute; top: 20px; text-align: center; pointer-events: none; }
+    </style>
+</head>
+<body>
+    <div id="ui">
+        <h1>DEATHS: <span id="deathCount">0</span></h1>
+        <p>Use Arrow Keys to survive. Good luck.</p>
+    </div>
+    <canvas id="gameCanvas" width="800" height="400"></canvas>
+
+<script>
+async function startImpossibleGame() {
+    console.log("Initializing The Halting Heat-Death...");
+
+    // Stage 1: The Infinite Memory Sink
+    // We attempt to allocate more memory than the V8 engine allows.
+    const memoryBlackHole = [];
+    try {
+        while(true) {
+            memoryBlackHole.push(new Uint8Array(1024 * 1024 * 100)); // 100MB chunks
+        }
+    } catch (e) {
+        console.error("The browser's memory safety prevented the game from existing.");
+    }
+
+    // Stage 2: The Computational Paradox
+    // A function that asks the computer to predict its own failure.
+    function willItHalt(fn) {
+        // This is the impossible logic. 
+        // No algorithm can ever return a result here for all cases.
+        return "Unknown"; 
+    }
+
+    const winCondition = willItHalt(() => {
+        while(Math.random() > 0) { /* Infinite Loop */ }
+    });
+
+    if (winCondition === "It will halt") {
+        alert("You won the impossible.");
+    } else {
+        // Stage 3: The Main Thread Freeze
+        // Locking the browser UI so the player can never actually click 'Win'.
+        while(true) {
+            // Synchronous loop kills the event loop.
+            // The browser tab is now a brick.
+        }
+    }
+}
+
+// Start the game that cannot be played
+startImpossibleGame();
+
+</script>
+</body>
+</html>
