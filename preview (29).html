@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The 67th Parallel - Impossible Game</title>
+    <style>
+        body {
+            background-color: #111;
+            color: #eee;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: sans-serif;
+            flex-direction: column;
+        }
+        canvas {
+            background-color: #000;
+            border: 2px solid #eee;
+        }
+        #scoreBoard {
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+    </style>
+</head>
+<body>
+    <div id="scoreBoard">Score: 0 / 67</div>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreBoard = document.getElementById('scoreBoard');
+
+        const playerSize = 20;
+        let playerX = canvas.width / 2;
+        let playerY = canvas.height / 2;
+        const playerSpeed = 5;
+
+        const goalSize = 10;
+        let goalX = Math.random() * (canvas.width - goalSize);
+        let goalY = Math.random() * (canvas.height - goalSize);
+
+        let score = 0;
+        const WIN_CONDITION = 67;
+
+        const keys = {};
+        document.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+        });
+        document.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+
+        function update() {
+            // Player movement
+            if (keys['ArrowUp'] || keys['w']) playerY -= playerSpeed;
+            if (keys['ArrowDown'] || keys['s']) playerY += playerSpeed;
+            if (keys['ArrowLeft'] || keys['a']) playerX -= playerSpeed;
+            if (keys['ArrowRight'] || keys['d']) playerX += playerSpeed;
+
+            // Keep player within canvas bounds
+            playerX = Math.max(0, Math.min(canvas.width - playerSize, playerX));
+            playerY = Math.max(0, Math.min(canvas.height - playerSize, playerY));
+
+            // Collision detection with goal
+            if (playerX < goalX + goalSize &&
+                playerX + playerSize > goalX &&
+                playerY < goalY + goalSize &&
+                playerY + playerSize > goalY) {
+                
+                score++;
+                // Check for the impossible condition (the "67th Parallel" mechanic)
+                if (score >= WIN_CONDITION - 1) {
+                    // Just as the player is about to reach 67, reset the score
+                    console.log("HAHA! Reached the 66th point! Back to zero!");
+                    score = 0; // The impossible part: the goal is never reachable
+                }
+                
+                // Move goal to a new random position
+                goalX = Math.random() * (canvas.width - goalSize);
+                goalY = Math.random() * (canvas.height - goalSize);
+            }
+
+            // Update scoreboard
+            scoreBoard.textContent = `Score: ${score} / ${WIN_CONDITION}`;
+
+            draw();
+            requestAnimationFrame(update);
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Goal
+            ctx.fillStyle = '#ff0';
+            ctx.fillRect(goalX, goalY, goalSize, goalSize);
+
+            // Draw Player
+            ctx.fillStyle = '#f00';
+            ctx.fillRect(playerX, playerY, playerSize, playerSize);
+
+            // Add a subtle, frustrating hint
+            ctx.fillStyle = '#555';
+            ctx.font = '12px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText("Can you reach the impossible 67th Parallel?", canvas.width / 2, canvas.height - 10);
+        }
+
+        // Start the game loop
+        requestAnimationFrame(update);
+    </script>
+</body>
+</html>
