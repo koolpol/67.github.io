@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perpetual Motion: The Impossible Game</title>
+    <link rel="stylesheet" href="style.css">
+    <style> body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #333;
+    margin: 0;
+    color: white;
+    font-family: monospace;
+}
+
+canvas {
+    background-color: #eee;
+    border: 2px solid white;
+}
+
+#gameStatus {
+    margin-top: 10px;
+    font-size: 1.2em;
+}
+ </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="600" height="400"></canvas>
+    <div id="gameStatus">Use Arrow Keys to Move. Do not touch blue circles. Good Luck (You'll Need It).</div>
+    <script> const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const gameStatus = document.getElementById('gameStatus');
+
+const PLAYER_SIZE = 10;
+const GOAL_SIZE = 20;
+const ENEMY_SIZE = 15;
+const MAX_ENEMIES = 30;
+const SPAWN_RATE = 50; // lower is faster
+const MAX_SPEED = 5;
+
+let player = {
+    x: 50,
+    y: canvas.height / 2,
+    vx: 0,
+    vy: 0,
+    speed: 2,
+    friction: 0.92 // Slippery physics
+};
+
+let goal = {
+    x: canvas.width - 50,
+    y: canvas.height / 2
+};
+
+let enemies = [];
+let keys = {};
+let score = 0;
+let gameOver = false;
+let gameInterval;
+let spawnInterval;
+
+document.addEventListener('keydown', (e) => keys[e.key] = true);
+document.addEventListener('keyup', (e) => keys[e.key] = false);
+
+function newGame() {
+    player.x = 50;
+    player.y = canvas.height / 2;
+    player.vx = 0;
+    player.vy = 0;
+    enemies = [];
+    score = 0;
+    gameOver = false;
+    gameStatus.textContent = "Good Luck (You'll Need It).";
+    if (gameInterval) clearInterval(gameInterval);
+    if (spawnInterval) clearInterval(spawnInterval);
+    gameInterval = setInterval(update, 1000 / 60); // 60 FPS
+    spawnInterval = setInterval(spawnEnemy, SPAWN_RATE);
+}
+
+function spawnEnemy() {
+    if (enemies.length >= MAX_ENEMIES || gameOver) return;
+
+    let side = Math.floor(Math.random() * 4);
+    let x, y, vx, vy;
+
+    switch (side) {
+        case 0: // Top
+            x = Math.random() * canvas.width;
+            y = -ENEMY_SIZE;
+            vx = (Math.random() - 0.5) * MAX_SPEED;
+            vy = Math.random() * (MAX_SPEED / 2) + 1;
+            break;
+        case 1: // Bottom
+            x = Math.random() * canvas.width;
+            y = canvas.height + ENEMY_SIZE;
+            vx = (Math.random() - 0.5) * MAX_SPEED;
+            vy = -(Math.random() * (MAX_SPEED / 2) + 1);
+            break;
+        case 2: // Left
+            x = -ENEMY_SIZE;
+            y = Math.random() * canvas.height;
+            vx = Math.random() * (MAX_SPEED / 2) + 1;
+            vy = (Math.random() - 0.5) * MAX_SPEED;
+            break;
+        case 3: // Right
+            x = canvas.width + ENEMY_SIZE;
+            y = Math.random() * canvas.height;
+            vx = -(Math.random() * (MAX_SPEED / 2) + 1);
+            vy = (Math.random() - 0.5) * MAX_SPEED;
+            break;
+    }
+
+    enemies.push({ x, y, vx, vy });
+}
+
+function updatePlayer() {
+    if (keys['ArrowUp']) player.vy -= 0.5;
+    if (keys['ArrowDown']) player.vy += 0.5;
+    if (keys['ArrowLeft']) player.vx -= 0.5;
+    if (keys['ArrowRight']) player.vx += 0.5;
+
+    player.vx *= player.friction;
+    player.vy *= player.friction;
+    
+    // Limit speed
+    player.vx = Math.max(-MAX_SPEED, Math.min(MAX_SPEED, player.vx));
+    player.vy = Math.max(-MAX_SPEED, Math.min(MAX_SPEED, player.vy));
+
+
+    player.x += player.vx;
+    player.y += player.vy;
+
+    // Boundary checks (game over if you leave the screen)
+    if (player.x < 0 || player.x > canvas.width || player.y < 0 || player.y > canvas.height) {
+        endGame("You left the arena! Pathetic.");
+    }
+}
+
+function updateEnemies() {
+    for (let i = 0; i < enemies.length; i++) {
+        let enemy = enemies[i];
+        
+        // Basic homing for "impossibility"
+        let dx = player.x - enemy.x;
+        let dy = player.y - enemy.y;
+        let dist = Math.sqrt(dx * dx + dy * dy);
+        
+        if (dist < 200) { // Homing range
+            enemy.vx += (dx / dist) * 0.05;
+            enemy.vy += (dy / dist) * 0.05;
+        }
+
+        // Increase speed slightly over time
+        enemy.vx *= 1.001; 
+        enemy.vy *= 1.001; 
+
+        enemy.x += enemy.vx;
+        enemy.y += enemy.vy;
+
+        // Collision detection with player
+        if (checkCollision(player, enemy)) {
+            endGame(`Game Over! Score: ${score}. You lasted ${Math.floor(score/60)} seconds.`);
+            return;
+        }
+    }
+    // Remove off-screen enemies to prevent infinite accumulation
+    enemies = enemies.filter(enemy => enemy.x > -ENEMY_SIZE * 2 && enemy.x < canvas.width + ENEMY_SIZE * 2 && enemy.y > -ENEMY_SIZE * 2 && enemy.y < canvas.height + ENEMY_SIZE * 2);
+}
+
+function checkCollision(obj1, obj2) {
+    let dx = obj1.x - obj2.x;
+    let dy = obj1.y - obj2.y;
+    let distance = Math.sqrt(dx * dx + dy * dy);
+    // Approximate collision for square/circle
+    return distance < (PLAYER_SIZE / 2 + ENEMY_SIZE / 2); 
+}
+
+function checkGoal() {
+    let dx = player.x - goal.x;
+    let dy = player.y - goal.y;
+    let distance = Math.sqrt(dx * dx + dy * dy);
+    if (distance < (PLAYER_SIZE / 2 + GOAL_SIZE / 2)) {
+        endGame(`You Reached the Goal! Wait, that's impossible... Did you cheat? Score: ${score}`);
+    }
+}
+
+function endGame(message) {
+    gameOver = true;
+    gameStatus.textContent = message + " Press F5 to try again.";
+    clearInterval(gameInterval);
+    clearInterval(spawnInterval);
+}
+
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw Goal (Green Circle)
+    ctx.fillStyle = 'green';
+    ctx.beginPath();
+    ctx.arc(goal.x, goal.y, GOAL_SIZE / 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Draw Enemies (Blue Circles)
+    ctx.fillStyle = 'blue';
+    enemies.forEach(enemy => {
+        ctx.beginPath();
+        ctx.arc(enemy.x, enemy.y, ENEMY_SIZE / 2, 0, Math.PI * 2);
+        ctx.fill();
+    });
+    
+    // Draw Player (Red Square)
+    ctx.fillStyle = 'red';
+    ctx.fillRect(player.x - PLAYER_SIZE / 2, player.y - PLAYER_SIZE / 2, PLAYER_SIZE, PLAYER_SIZE);
+
+    // Display Score/Time
+    ctx.fillStyle = 'black'; // text color on the gray canvas
+    ctx.font = '16px monospace';
+    ctx.fillText(`Time: ${Math.floor(score/60)}s`, 10, 20);
+    ctx.fillText(`Enemies: ${enemies.length}`, 10, 40);
+}
+
+function update() {
+    if (gameOver) return;
+    updatePlayer();
+    updateEnemies();
+    checkGoal();
+    draw();
+    score++;
+}
+
+// Start the game initially
+newGame();
+ </script>
+</body>
+</html>

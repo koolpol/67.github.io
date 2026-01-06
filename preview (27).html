@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>THE ENTROPY WALL</title>
+    <style>
+        body { background: #050505; color: #ff0000; font-family: 'Courier New', Courier, monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; overflow: hidden; }
+        #gameCanvas { border: 2px solid #333; box-shadow: 0 0 20px rgba(255,0,0,0.2); }
+        .ui { margin-top: 20px; text-align: center; }
+        .status { font-size: 1.2rem; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 2px; }
+    </style>
+</head>
+<body>
+    <div class="status" id="status">System Status: Waiting for Input...</div>
+    <canvas id="gameCanvas" width="600" height="200"></canvas>
+    <div class="ui">
+        <p>INSTRUCTIONS: Press [SPACE] at the exact nanosecond the white line aligns with the red line.</p>
+        <p style="color: #444; font-size: 0.8rem;">Failure Probability: 99.9999999%</p>
+    </div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const status = document.getElementById('status');
+
+    let targetX = 300;
+    let playerX = 0;
+    let speed = 8;
+    let frameCount = 0;
+    let gameOver = false;
+
+    // The Impossible Logic: 
+    // The "Win Zone" is only 0.0001 pixels wide, and the speed 
+    // ensures the playerX skips over the targetX in a single frame.
+    function update() {
+        if (gameOver) return;
+
+        playerX += speed;
+        if (playerX > canvas.width) playerX = 0;
+
+        // Subtle jitter: Target moves slightly every frame to prevent rhythm timing
+        targetX = 300 + Math.sin(Date.now() / 100) * 2;
+
+        draw();
+        requestAnimationFrame(update);
+    }
+
+    function draw() {
+        ctx.fillStyle = '#050505';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Draw Target (Red)
+        ctx.strokeStyle = '#ff0000';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(targetX, 50);
+        ctx.lineTo(targetX, 150);
+        ctx.stroke();
+
+        // Draw Player (White)
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(playerX, 40);
+        ctx.lineTo(playerX, 160);
+        ctx.stroke();
+    }
+
+    window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' && !gameOver) {
+            // MATH IMPOSSIBILITY:
+            // Math.abs(playerX - targetX) must be less than 0.01.
+            // Since speed is 8, the player jumps 8 pixels per frame.
+            // The probability of the frame landing within 0.01 of the target is 0.00125.
+            // Even if successful, we add a secondary "Anti-Cheat" randomness.
+            const precision = Math.abs(playerX - targetX);
+            
+            if (precision < 0.1 && Math.random() > 0.999999) {
+                status.innerText = "CRITICAL ERROR: YOU WON?";
+                status.style.color = "#00ff00";
+            } else {
+                status.innerText = `FAILED. PRECISION OFFSET: ${precision.toFixed(4)}px`;
+                gameOver = true;
+                setTimeout(() => {
+                    gameOver = false;
+                    playerX = 0;
+                    status.innerText = "RETRYING...";
+                    update();
+                }, 1000);
+            }
+        }
+    });
+
+    update();
+</script>
+</body>
+</html>
+ 
