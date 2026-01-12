@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Flappy Bird Boss Fight</title>
+    <style>
+        body { text-align: center; background: #222; color: white; font-family: sans-serif; overflow: hidden; }
+        canvas { border: 4px solid #fff; background: #70c5ce; display: block; margin: 20px auto; }
+    </style>
+</head>
+<body>
+    <h1>FLAPPY BOSS</h1>
+    <p>Score 5 to summon the Boss! Click or Space to Jump.</p>
+    <canvas id="gameCanvas" width="400" height="600"></canvas>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+// Game Constants
+const GRAVITY = 0.25;
+const JUMP = -5;
+const PIPE_SPEED = 2;
+const PIPE_SPAWN_RATE = 100;
+
+// Game State
+let bird = { x: 50, y: 300, w: 30, h: 30, velocity: 0 };
+let pipes = [];
+let projectiles = [];
+let score = 0;
+let frame = 0;
+let gameOver = false;
+
+// Boss State
+let boss = { x: 450, y: 100, w: 80, h: 80, health: 100, active: false, phase: 0 };
+
+function reset() {
+    bird = { x: 50, y: 300, w: 30, h: 30, velocity: 0 };
+    pipes = [];
+    projectiles = [];
+    score = 0;
+    frame = 0;
+    boss = { x: 450, y: 100, w: 80, h: 80, health: 100, active: false, phase: 0 };
+    gameOver = false;
+    loop();
+}
+
+function input() {
+    if (gameOver) reset();
+    else bird.velocity = JUMP;
+}
+
+window.addEventListener("mousedown", input);
+window.addEventListener("keydown", (e) => { if(e.code === "Space") input(); });
+
+function update() {
+    if (gameOver) return;
+
+    frame++;
+    bird.velocity += GRAVITY;
+    bird.y += bird.velocity;
+
+    // Floor/Ceiling Collisions
+    if (bird.y + bird.h > canvas.height || bird.y < 0) gameOver = true;
+
+    // Pipe Logic (Only before Boss)
+    if (!boss.active) {
+        if (frame % PIPE_SPAWN_RATE === 0) {
+            let gap = 150;
+            let pos = Math.random() * (canvas.height - gap - 100) + 50;
+            pipes.push({ x: canvas.width, y: pos, gap: gap, passed: false });
+        }
+
+        pipes.forEach((p, i) => {
+            p.x -= PIPE_SPEED;
+            // Collision
+            if (bird.x < p.x + 50 && bird.x + bird.w > p.x && (bird.y < p.y || bird.y + bird.h > p.y + p.gap)) {
+                gameOver = true;
+            }
+            // Score
+            if (!p.passed && p.x < bird.x) {
+                p.passed = true;
+                score++;
+                if (score >= 5) boss.active = true;
+            }
+        });
+        pipes = pipes.filter(p => p.x > -50);
+    } 
+    
+    // Boss Logic
+    else {
+        // Move Boss onto screen
+        if (boss.x > 280) boss.x -= 1;
+        
+        // Boss Movement pattern
+        boss.y += Math.sin(frame * 0.05) * 3;
+
+        // Boss Attacks
+        if (frame % 60 === 0) {
+            projectiles.push({ x: boss.x, y: boss.y + boss.h/2, vx: -4, vy: (Math.random() - 0.5) * 2 });
+        }
+
+        projectiles.forEach((pr, i) => {
+            pr.x += pr.vx;
+            pr.y += pr.vy;
+            // Collision with bird
+            if (bird.x < pr.x + 10 && bird.x + bird.w > pr.x && bird.y < pr.y + 10 && bird.y + bird.h > pr.y) {
+                gameOver = true;
+            }
+        });
+        projectiles = projectiles.filter(pr => pr.x > -20);
+    }
+}
+
+function draw() {
+    // Background
+    ctx.fillStyle = "#70c5ce";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Bird
+    ctx.fillStyle = "yellow";
+    ctx.fillRect(bird.x, bird.y, bird.w, bird.h);
+
+    // Pipes
+    ctx.fillStyle = "green";
+    pipes.forEach(p => {
+        ctx.fillRect(p.x, 0, 50, p.y);
+        ctx.fillRect(p.x, p.y + p.gap, 50, canvas.height);
+    });
+
+    // Boss
+    if (boss.active) {
+        ctx.fillStyle = "red";
+        ctx.fillRect(boss.x, boss.y, boss.w, boss.h);
+        // Boss Eyes
+        ctx.fillStyle = "black";
+        ctx.fillRect(boss.x + 15, boss.y + 20, 10, 10);
+        ctx.fillRect(boss.x + 45, boss.y + 20, 10, 10);
+        
+        // Projectiles
+        ctx.fillStyle = "orange";
+        projectiles.forEach(pr => ctx.beginPath() || ctx.arc(pr.x, pr.y, 8, 0, Math.PI*2) || ctx.fill());
+    }
+
+    // UI
+    ctx.fillStyle = "white";
+    ctx.font = "24px Arial";
+    ctx.fillText(`Score: ${score}`, 20, 40);
+    if (boss.active) ctx.fillText("BOSS ALERT!", 140, 40);
+
+    if (gameOver) {
+        ctx.fillStyle = "rgba(0,0,0,0.5)";
+        ctx.fillRect(0,0,canvas.width, canvas.height);
+        ctx.fillStyle = "white";
+        ctx.fillText("GAME OVER", 130, 300);
+        ctx.fillText("Click to Restart", 120, 340);
+    }
+}
+
+function loop() {
+    update();
+    draw();
+    if (!gameOver) requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+</body>
+</html>

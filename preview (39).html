@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>FLAPPY OVERDRIVE: BOSS RUSH</title>
+    <style>
+        body { 
+            background: #0f0f1b; 
+            color: #00ffcc; 
+            font-family: 'Courier New', Courier, monospace; 
+            margin: 0; 
+            overflow: hidden; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh;
+        }
+        canvas { 
+            border: 3px solid #00ffcc; 
+            box-shadow: 0 0 20px #00ffcc; 
+            background: #000;
+            image-rendering: pixelated;
+        }
+        .ui { position: absolute; top: 10px; pointer-events: none; text-align: center; }
+        #msg { font-size: 24px; text-shadow: 2px 2px #ff0055; }
+    </style>
+</head>
+<body>
+    <div class="ui">
+        <h1 id="title">FLAPPY OVERDRIVE</h1>
+        <div id="msg">Score 10 to trigger the CORE</div>
+    </div>
+    <canvas id="gameCanvas" width="500" height="700"></canvas>
+
+<script>
+/** @type {HTMLCanvasElement} */
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+// Game Config
+const GRAVITY = 0.3;
+const JUMP = -5.5;
+const BOSS_THRESHOLD = 10;
+
+// State Variables
+let bird, pipes, bullets, bossBullets, boss, particles, score, frame, gameOver, timeScale;
+
+function init() {
+    bird = { x: 80, y: 350, w: 24, h: 24, v: 0, tilt: 0, flash: 0 };
+    pipes = [];
+    bullets = [];
+    bossBullets = [];
+    particles = [];
+    score = 0;
+    frame = 0;
+    gameOver = false;
+    timeScale = 1;
+    boss = {
+        active: false,
+        x: 600, y: 350, w: 80, h: 80,
+        hp: 200, maxHp: 200,
+        angle: 0,
+        dir: 1,
+        phase: 1
+    };
+    document.getElementById('msg').innerText = "Score 10 to trigger the CORE";
+}
+
+// Input Handling
+const doJump = () => {
+    if (gameOver) { init(); loop(); return; }
+    bird.v = JUMP;
+    spawnParticles(bird.x, bird.y, '#fff', 5);
+};
+window.addEventListener("mousedown", doJump);
+window.addEventListener("keydown", (e) => { if(e.code === "Space") doJump(); });
+
+function spawnParticles(x, y, color, count) {
+    for(let i=0; i<count; i++) {
+        particles.push({
+            x, y, 
+            vx: (Math.random()-0.5)*10, 
+            vy: (Math.random()-0.5)*10, 
+            life: 1, 
+            color
+        });
+    }
+}
+
+function update() {
+    if (gameOver) return;
+    frame++;
+
+    // Bird Physics
+    bird.v += GRAVITY;
+    bird.y += bird.v;
+    bird.tilt = Math.min(Math.PI/4, Math.max(-Math.PI/4, bird.v * 0.1));
+
+    if (bird.y > canvas.height || bird.y < 0) gameOver = true;
+
+    // Pipe Spawning (Phase 1)
+    if (!boss.active) {
+        if (frame % 80 === 0) {
+            let gap = 160;
+            let pos = Math.random() * (canvas.height - gap - 100) + 50;
+            pipes.push({ x: canvas.width, y: pos, gap, passed: false });
+        }
+    } else {
+        // Boss Logic
+        boss.x = lerp(boss.x, canvas.width - 120, 0.05);
+        boss.y = 350 + Math.sin(frame * 0.05) * 150;
+        boss.angle += 0.05;
+
+        // Auto-shoot at boss
+        if (frame % 10 === 0) {
+            bullets.push({ x: bird.x + 20, y: bird.y, vx: 10 });
+        }
+
+        // Boss Attack Patterns
+        if (boss.hp > 0) {
+            if (frame % 40 === 0) {
+                // Phase 1: Spiral
+                for(let i=0; i<8; i++) {
+                    let ang = (frame * 0.1) + (i * Math.PI / 4);
+                    bossBullets.push({ x: boss.x + 40, y: boss.y + 40, vx: Math.cos(ang)*4, vy: Math.sin(ang)*4, r: 8 });
+                }
+            }
+            if (boss.hp < 100 && frame % 100 === 0) {
+                // Phase 2: Targeted Nova
+                for(let i=0; i<12; i++) {
+                    let ang = (i * Math.PI / 6);
+                    bossBullets.push({ x: boss.x+40, y: boss.y+40, vx: Math.cos(ang)*2, vy: Math.sin(ang)*2, r: 12, hue: 0 });
+                }
+            }
+        } else {
+            boss.active = false;
+            document.getElementById('msg').innerText = "CORE DESTROYED - VICTORY";
+            spawnParticles(boss.x, boss.y, '#ff0055', 50);
+        }
+    }
+
+    // Move Pipes
+    pipes.forEach((p, i) => {
+        p.x -= 3;
+        if (!p.passed && p.x < bird.x) {
+            score++;
+            p.passed = true;
+            if (score >= BOSS_THRESHOLD) boss.active = true;
+        }
+        // Collision
+        if (bird.x + 10 > p.x && bird.x - 10 < p.x + 50) {
+            if (bird.y < p.y || bird.y > p.y + p.gap) gameOver = true;
+        }
+    });
+    pipes = pipes.filter(p => p.x > -60);
+
+    // Player Bullets
+    bullets.forEach((b, i) => {
+        b.x += b.vx;
+        if (boss.active && b.x > boss.x && b.x < boss.x + boss.w && b.y > boss.y && b.y < boss.y + boss.h) {
+            boss.hp -= 2;
+            bird.flash = 5;
+            bullets.splice(i, 1);
+            spawnParticles(b.x, b.y, '#0ff', 2);
+        }
+    });
+
+    // Enemy Bullets
+    bossBullets.forEach((b, i) => {
+        b.x += b.vx;
+        b.y += b.vy;
+        let dist = Math.hypot(bird.x - b.x, bird.y - b.y);
+        if (dist < 15) gameOver = true;
+    });
+    bossBullets = bossBullets.filter(b => b.x > -50 && b.x < 600 && b.y > -50 && b.y < 750);
+
+    // Particles
+    particles.forEach((p, i) => {
+        p.x += p.vx; p.y += p.vy;
+        p.life -= 0.02;
+    });
+    particles = particles.filter(p => p.life > 0);
+
+    if (gameOver) document.getElementById('msg').innerText = "CRITICAL FAILURE - Click to Restart";
+}
+
+function draw() {
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Grid effect
+    ctx.strokeStyle = "#001122";
+    for(let i=0; i<canvas.width; i+=40) {
+        ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
+    }
+
+    // Draw Boss
+    if (boss.active) {
+        ctx.save();
+        ctx.translate(boss.x + 40, boss.y + 40);
+        ctx.rotate(boss.angle);
+        ctx.strokeStyle = "#ff0055";
+        ctx.lineWidth = 4;
+        ctx.strokeRect(-40, -40, 80, 80);
+        ctx.strokeRect(-25, -25, 50, 50);
+        ctx.restore();
+
+        // HP Bar
+        ctx.fillStyle = "#333";
+        ctx.fillRect(boss.x, boss.y - 20, 80, 8);
+        ctx.fillStyle = "#ff0055";
+        ctx.fillRect(boss.x, boss.y - 20, (boss.hp / boss.maxHp) * 80, 8);
+    }
+
+    // Draw Pipes
+    ctx.fillStyle = "#00ffcc";
+    pipes.forEach(p => {
+        ctx.fillRect(p.x, 0, 50, p.y);
+        ctx.fillRect(p.x, p.y + p.gap, 50, canvas.height);
+        ctx.shadowBlur = 10; ctx.shadowColor = "#00ffcc";
+    });
+    ctx.shadowBlur = 0;
+
+    // Draw Bullets
+    ctx.fillStyle = "#0ff";
+    bullets.forEach(b => ctx.fillRect(b.x, b.y, 10, 4));
+    
+    ctx.fillStyle = "#ff0055";
+    bossBullets.forEach(b => {
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r || 5, 0, Math.PI*2);
+        ctx.fill();
+    });
+
+    // Draw Bird
+    ctx.save();
+    ctx.translate(bird.x, bird.y);
+    ctx.rotate(bird.tilt);
+    ctx.fillStyle = bird.flash > 0 ? "#fff" : "#00ffcc";
+    if (bird.flash > 0) bird.flash--;
+    ctx.fillRect(-12, -12, 24, 24);
+    ctx.fillStyle = "#000";
+    ctx.fillRect(4, -8, 4, 4); // Eye
+    ctx.restore();
+
+    // Draw Particles
+    particles.forEach(p => {
+        ctx.globalAlpha = p.life;
+        ctx.fillStyle = p.color;
+        ctx.fillRect(p.x, p.y, 3, 3);
+    });
+    ctx.globalAlpha = 1;
+
+    // Score
+    ctx.fillStyle = "#fff";
+    ctx.font = "20px Courier New";
+    ctx.fillText(`SYSTEM_INTEGRITY: ${score}`, 20, 40);
+}
+
+function lerp(a, b, n) { return (1 - n) * a + n * b; }
+
+function loop() {
+    update();
+    draw();
+    if (!gameOver) requestAnimationFrame(loop);
+}
+
+init();
+loop();
+</script>
+</body>
+</html>
